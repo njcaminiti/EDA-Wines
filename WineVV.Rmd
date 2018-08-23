@@ -37,11 +37,14 @@ all$X <- NULL
 red$color <- NULL
 white$color <- NULL
 all$quality <- factor(all$quality, ordered=TRUE)
+all$sweetness = cut(all$residual.sugar, breaks=c(0,10,500), labels = c("dry", "semi-dry"))
 ```
 
 We have access to data on 6497 bottles of "Vinho Verde" in total, 1599 of which are red, and 4898 of which are white. The data include measurements on 11 chemical compounds or properties, plus a subjective rating of "quality" as determined by a panel of wine professionals. 
 
-I added a "color" variable to each dataset identifying each entry as "red" or "white", before combining the two sets into a master dataframe. This will allow us to group by color during certain analyses, which in turn will help expose major differences between the characteristics of the two types of wine. (NOTE: for post EDA statistical testing, we would want to code color as dummy integer variables rather than as a categorical string variable.) The "Quality" variable has been recoded as an ordered factor. 
+I added a "color" variable to each dataset identifying each entry as "red" or "white", before combining the two sets into a master dataframe. This will allow us to group by color during certain analyses, which in turn will help expose major differences between the characteristics of the two types of wine. (NOTE: for post EDA statistical testing, we would want to code color as dummy integer variables rather than as a categorical string variable.) The "Quality" variable has been recoded as an ordered factor.
+
+I also "cut" the wines into dry and semi-dry "sweetness" groupings based on their residual sugar content to help us look for significant differences between wines of differing sweetness. I used [this article](https://winefolly.com/review/sugar-in-wine-chart/) from winefolly.com to inform my choice of cutoff values. (NOTE: in retrospect, I end up not making much use of this variable)
 
 *NOTE: For all variables except for "quality", individual outlier values (below .01 quantile or above .99 quantile) have been replaced with NA so they do not interfere with observations and calculations*
 
@@ -54,6 +57,7 @@ describe(all[1:12], omit=TRUE)[c(3, 4, 5, 8:9, 11:12)]
 
 The data documentation specifically states that some of the features may be correllated, and that it might be possible to select only a subset of the most relevant features without losing much information, so before I proceed, I will check for highly correlated features to see if we might be able to trim the amount of data we're looking at.
 
+##### Corrgram
 ```{r corrgram}
 corrgram(all)
 ```
@@ -164,7 +168,7 @@ Mean alcohol content is around 10.5, but the most common value was around 9.5.  
 
 Density curves for the reds and the whites are actually quite similar here. Of note however is the hump at 12.25, suggesting that there may be a cluster of high-alcohol content white wines. 
 
-While we will not be doing this during our exercise, it might be interesting to break alcohol content into "buckets", thus turning it into an ordered factor rather than a continuous variable. Based on just a crude look at what data we have here, I might consider dividing the bottles into low, mid, and high alcohol content with break-points at 10.5 and 11.75
+While we will not be doing this during our exercise, it might be interesting to break alcohol content into "buckets", thus turning it into an ordered factor rather than a continuous variable. Based on just a crude look at what data we have here, I might consider dividing the bottles into low, mid, and high alcohol content with break-points at 10.5 and 11.75.
 
 One last note: There are some odd 'peaks', which seem to be at .0 and .5 values. I wonder why this is.
 
@@ -185,6 +189,7 @@ We've now just about exhausted what we can get out of univariate plots. Creating
 
 Let's go back to our correlation matrix. This time we are interested in details about any particular correlations, so we will use GGally's "ggpairs" function rather than corrgram.  This will provide us with bivariate plots as well as correlation coefficients, whereas corrgram only provided us with a visual indicator of where there might be strong correlations.
 
+##### ggpairs
 ```{r ggpairs}
 ggpairs(all)
 ```
@@ -261,41 +266,66 @@ Well... not many it seems. According to our ggpairs correlation matrix, the vari
 
 We must note, however, that the correlations we just identified are from the whole data set (red and white combined). Since we have already discovered so many significant differences between the reds and the whites, we should probably take the time to revisit every variable in this step to make sure we don't overlook a significant relationship because it got masked by our decision to combine both datasets. 
 
+#### Measures of Acidity
+
 ```{r acidity~quality}
 grid.arrange(qplot(data=all, x=quality, y=fixed.acidity, fill=color, geom='boxplot'), qplot(data=all, x=quality, y=volatile.acidity, fill=color, geom='boxplot'), qplot(data=all, x=quality, y=citric.acid, fill=color, geom='boxplot'), qplot(data=all, x=quality, y=pH, fill=color, geom='boxplot') + scale_y_continuous(trans='reverse'),nrow=2)
 ```
 
 ##### Fixed Acidity
 
+Generally higher among the reds. Also, higher levels of fixed acidity seem to be preferable in red wines but unpreferable in whites. Question for a wine expert: what's with the outliers in the whites set? 
 
 
 ##### Volatile Acidity
 
+Again, generally higher among the reds. Volatile acidity is negatively correllated with quality in the red wines, but seems to be less of a predictor of quality in the whites. 
 
 
 ##### Citric Acid
 
-
+Looks like citric acid lends a desirable quality to wines, especially red wines. There is a significant positive correlation between CA content and quality in the reds, and a less prounounced correlation in the whites.
 
 ##### pH
 
-
+Not a whole lot to see that we haven't already looked at. As measured by pH, higher quality reds tend to be more acidic while higher quality whites tend to be less so. 
  
+
+#### Residual Sugar
 
 ```{r residual.sugar~quality}
 qplot(data=all, x=quality, y=residual.sugar, fill=color, geom='boxplot')
 ```
 
+HUGE IQRs among the whites, with means showing no clear trend. All over the place really. Lets see if we can take a closer look at what's going on there.
+
+The following plot will show us only the white wines, further broken down into groupings by sweetness.
+
+```{r residual.sugar~quality whites}
+qplot(data=subset(all, color = 'White'), x=quality, y=residual.sugar, fill = sweetness, geom = 'boxplot') + scale_fill_manual(values =c('#EEEEEE', "#BBBBBB"), guide = guide_legend(reverse = TRUE))
+```
+
+Now, we've exposed two discrete sets of IQRs, the high ones for the semi-dry wines and the low ones for the dry wines. Unfortunately though, this has not provided any interesting insights. 
+
+
+#### Solutes
+
 ```{r solutes~quality}
 grid.arrange(qplot(data=all, x=quality, y=chlorides, fill=color, geom='boxplot'), qplot(data=all, x=quality, y=sulphates, fill=color, geom='boxplot'), nrow=1)
 ```
 
-Higher chloride count did not render wines catagorically unpleasant (see high values at quality ratings of 6, 7, and 8), the highest quality wines generally had very low chloride levels.
+Higher chloride count did not render wines catagorically unpleasant (see high values at quality ratings of 6, 7, and 8), but the highest quality wines generally had some of the lowest chloride levels.
+
+Sulphate levels are positively associated with quality in reds, but neutral among the whites.
+
+
+#### Sulfur Dioxide
 
 ```{r sulfur.dioxide~quality}
 grid.arrange(qplot(data=all, x=quality, y=free.sulfur.dioxide, fill=color, geom='boxplot'), qplot(data=all, x=quality, y=total.sulfur.dioxide, fill=color, geom='boxplot'), nrow=1)
 ```
 
+Sulfur Dioxide levels much higher in the white wines (but less so for the lowest quality wines). 
 
 ```{r alcohol~quality}
 qplot(data=all, x=quality, y=alcohol, fill=color, geom='boxplot')
@@ -303,26 +333,28 @@ qplot(data=all, x=quality, y=alcohol, fill=color, geom='boxplot')
 
 There is a clear relationship between alcohol content and quality, but it is not linear. The alcohol contents of the best wines were almost uniformly higher than lower-rated wines, but wines ranked 3 and 4 had generally higher alcohol content than those ranked 5. 
 
-The more we explore this data, the more it seems that there are very few cut-and-dry correlations. To really expose any meaningful trends, we would probably have to employ more complex multivariate analyses and maybe run statistical tests for covariance and interaction effects between different variables. 
+I'm not a wine expert, but one thing that I *do* know is that wine is fermented grape juice, and that fermentation is a natural process by which sugars are converted to alcohol. The longer something ferments, the more of its sugars will become alcohol. So.... it seems to follow that wines with higher sugar content should have lower alcohol content (and vice versa). Actually, if we revisit the "Winefolly" article from earlier, we can confirm these thoughts.
 
-Before we move on, there is one more thing I'd like to take a look at.
+According to that article: 
 
-I'm not a wine expert, but one thing that I *do* know is that wine is fermented grape juice, and that fermentation is a natural process by which sugars are converted to alcohol. The longer something ferments, the more of its sugars will become alcohol. So.... it seems to follow that wines with higher sugar content should have lower alcohol content (and vice versa). Let's take a look and see if this is shows through in our data. () 
+>Basically, when winemaking happens, yeast eats sugar and makes ethanol (alcohol) as a by-product. A dry wine is when the yeast eats all the sugars and a sweet wine is when the yeast is stopped (usually by chilling the fermentation) before it eats all the sugars. This is why some sweet wines have less alcohol that dry wines. A great example of this is German Riesling, which usually have about 8–9% ABV when sweet and 10–11% ABV when dry.
 
-```{r}
+Let's take a look and see if this shows through in our data. 
+
+```{r sugar~alcohol}
 qplot(data=all, x=residual.sugar, y=alcohol) + stat_smooth(method='lm', se=FALSE, size=2, fullrange=TRUE)
 ```
 
-Well, there seems to be a negative correlation like I predicted, but the data is pretty messy. Let's see if we can do a better job of sorting through this. One thing I know we can probably do right off the bat is to subset out only the white wines (since the reds all have low sugar content). While doing that, let's also see if quality factors into this relationship at all.  
+Well, there seems to be a negative correlation like I predicted, but the data is pretty messy. Let's see if we can do a better job of sorting through this. One thing I know we can probably do right off the bat is to subset out only the white wines (since the reds all have low sugar content). While doing that, let's also see how quality factors into this relationship.  
 
-```{r}
+```{r sugar~alcohol by quality}
 all <- group_by(all, quality)
 qplot(data=subset(all, color=='White'), x=residual.sugar, y=alcohol, color=quality) + stat_smooth(method='lm', se=FALSE, size=2, fullrange=TRUE)
 ```
 
-There does in fact seem to be some variation between each quality group, but this is pretty noisy so lets get a better look by separating this out into facets by quality. 
+There does in fact seem to be some variation between each quality group. Lets get a better look by separating quality out into facets. 
 
-```{r}
+```{r sugar~alcohol by quality faceted}
 qplot(data=subset(all, color="White"), x=residual.sugar, y=alcohol) + stat_smooth(method='lm', size=2) + facet_wrap(~quality) 
 ```
 
@@ -330,7 +362,7 @@ Well that's interesting!  The relationship that I predicted I'd see between suga
 
 The same trend viewed in non-graphical representation of each quality grouping's linear coefficient:
 
-```{r}
+```{r corrcoef}
 fitted_models = all %>% group_by(quality) %>% do(model = lm(alcohol ~ residual.sugar, data = .))
 for (i in 1:7){
   cat(c("Quality", levels(fitted_models$quality)[i], ":" ,  round(fitted_models$model[[i]][['coefficients']][2], 4), "\n"))
@@ -342,6 +374,11 @@ for (i in 1:7){
 ## Final Plots
 
 ### One
+```{r alcohol in white wines by sweetness}
+ggplot(subset(all, color == "White")) + geom_point(aes(x=residual.sugar, y=alcohol, color=quality)) + geom_smooth(aes(x=residual.sugar, y=alcohol), method=lm) 
+```
+
+
 
 ### Two
 
@@ -349,7 +386,7 @@ for (i in 1:7){
 
 
 
-## Reflection
+## Final Reflection
 
 In retrospect, it would have been wiser to keep the red and white wine datasets separate. 
 For stats analysis: 
