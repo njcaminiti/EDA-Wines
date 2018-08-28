@@ -1,3 +1,8 @@
+# UDAN_EDA
+
+Exploratory data analysis in an RMarkdown Notebook (can knit to HTML, PDF, or Word doc)
+
+
 ###This exploratory data analysis uses the following dataset:
 
   P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis. 
