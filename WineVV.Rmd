@@ -8,8 +8,12 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+
+# set fig output directory to save plots upon knit
 knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',
                       echo=FALSE, warning=FALSE, message=FALSE)
+
+# load required packages 
 library(ggplot2)
 library(gridExtra)
 library(outliers)
@@ -21,6 +25,8 @@ library(corrgram)
 library(ggthemes)
 library(reshape2)
 library(RColorBrewer)
+
+# set base plotting theme
 theme_set(theme_minimal())
 ```
 
@@ -28,6 +34,8 @@ theme_set(theme_minimal())
 This report documents the process of exploring a new dataset for the first time using R. The data being explored actually consists of two related datasets exploring the chemical composition of a selection of red and white wines, respectively. We will consider both datasets to aid in identifying any significant differences between the two when we move into multivariate analyses. (NOTE: I recognize that combining both the red and white wine datasets may mask some bivariate relationships that would have been more evident had either dataset been viewed in isolation, but we will proceed with this analysis for two reasons: 1. Combining the data from the two types of wine will allow us to spot bivariate relationships that are *common* to both red and white wines, and this in itself could be interesting. 2. any bivariate relationships that are masked will be revealed when we use wine color as a grouping factor in multivariate analyses.) 
 
 ```{r winedata}
+
+# load in and process dataset
 red <- read.csv("Data/wineQualityReds.csv")
 white <- read.csv("Data/wineQualityWhites.csv")
 red$color <- "Red"
@@ -37,7 +45,8 @@ all$X <- NULL
 red$color <- NULL
 white$color <- NULL
 all$quality <- factor(all$quality, ordered=TRUE)
-all$sweetness <- cut(all$residual.sugar, breaks = c(0,10,500), labels=c('dry', 'semi-dry'))
+all$sweetness <- cut(all$residual.sugar, breaks = c(0,10,500),
+                     labels=c('dry','semi-dry'))
 ```
 
 We have access to data on 6497 bottles of "Vinho Verde" in total, 1599 of which are red, and 4898 of which are white. The data include measurements on 11 chemical compounds or properties, plus a subjective rating of "quality" as determined by a panel of wine professionals. 
@@ -49,9 +58,13 @@ I also "cut" the wines into dry and semi-dry "sweetness" groupings based on thei
 *NOTE: For all variables except for "quality", individual outlier values (below .01 quantile or above .99 quantile) have been replaced with NA so they do not interfere with observations and calculations*
 
 ```{r overview, echo=FALSE}
+
+# remove outliers
 goods <- lapply(all[0:11], quantile, probs=c(.01, .99))
 for (i in colnames(all[1:11])) {
     all[i][!between(all[i], goods[[i]][1], goods[[i]][2])] <- NA }
+
+# get stats on subset of df columns
 describe(all[1:12], omit=TRUE)[c(3, 4, 5, 8:9, 11:12)]
 ```
 
@@ -77,7 +90,16 @@ Superimposing individual density curves for the red and white groups help to ill
 #### Fixed and Volatile Acidity
 
 ```{r univariate counts fixed acidity}
-grid.arrange(ggplot(all, aes(fixed.acidity)) + geom_histogram(aes(y=..density..),binwidth = .1, color='black', fill='grey') + geom_density(aes(fill=color), alpha=.5), ggplot(all, aes(volatile.acidity)) + geom_histogram(aes(y=..density..),binwidth = .01, color='black', fill='grey') + geom_density(aes(fill=color), alpha=.5), nrow=1)  
+grid.arrange(ggplot(all, aes(fixed.acidity)) +
+               geom_histogram(aes(y=..density..),binwidth = .1,
+                              color='black', fill='grey') +
+               geom_density(aes(fill=color), alpha=.5),
+             
+             ggplot(all, aes(volatile.acidity)) +
+               geom_histogram(aes(y=..density..),binwidth = .01,
+                              color='black', fill='grey') +
+               geom_density(aes(fill=color), alpha=.5),
+             nrow=1)  
 ```
 
 The most common fixed acidity value is around 7, but the distribution is clearly right-skewed for both the red and white wines (moreso for the reds). The white wines generally have a lower fixed acidity than the reds.
@@ -88,7 +110,9 @@ In our volatile acidity histogram, we see What appears to be a simple right-skew
 #### Citric Acid
 
 ```{r univariate counts citric acid}
-ggplot(all, aes(x=citric.acid)) + geom_histogram(aes(y=..density..), binwidth=.01, color='black', fill='grey') + geom_density(aes(fill=color), alpha=.5)
+ggplot(all, aes(x=citric.acid)) +
+  geom_histogram(aes(y=..density..),binwidth=.01, color='black', fill='grey') +
+  geom_density(aes(fill=color), alpha=.5)
 ```
 
 Unlike with fixed and volatile acidity, the distribution of citric acid concentrations is relatively symetrical, suggesting that there are compounds other than citric acid which ultimately impact the acidity of each wine. The distribution of the values for the red wines does not resemble a normal distribution, and many of the reds have no citric acid at all. Furthermore, there is an unusual spike at CA value of 0.5 attributable to the white wines.
@@ -97,7 +121,9 @@ Unlike with fixed and volatile acidity, the distribution of citric acid concentr
 #### Residual Sugar
 
 ```{r univariate counts residual sugar}
-ggplot(all, aes(residual.sugar)) + geom_histogram(aes(y=..density..),binwidth=.5) + geom_density(aes(fill=color), alpha=.5) 
+ggplot(all, aes(residual.sugar)) +
+  geom_histogram(aes(y=..density..),binwidth=.5) +
+  geom_density(aes(fill=color), alpha=.5) 
 ```
 
 Another right-skewed feature. While the majority of the wines have a residual sugar value below 5, there are a handful of sweeter bottles. The sweetest bottle (not shown in plot) actually has a value of 65.8. I wonder what the judges thought of that one...
@@ -108,7 +134,9 @@ Our density plot reveals a significant difference between the reds and whites. W
 #### Chlorides
 
 ```{r univariate counts chlorides}
-ggplot(all, aes(chlorides)) + geom_histogram(aes(y=..density..),binwidth=.005,color='black', fill='grey') + geom_density(aes(fill=color), alpha=.5) 
+ggplot(all, aes(chlorides)) +
+  geom_histogram(aes(y=..density..),binwidth=.005,color='black', fill='grey') +
+  geom_density(aes(fill=color), alpha=.5) 
 ```
 
 Continuing with our trend of right-skewed data, we have our plot of chloride content. Almost entirely < .1.  I'm curious about those handful of bottles that have significantly higher chloride values.
@@ -119,7 +147,16 @@ Our density plot reveals what we could not see very well in our histogram: that 
 #### Free and Total Sulfur Dioxide
 
 ```{r univariate counts sulfur dioxide}
-grid.arrange(ggplot(all, aes(free.sulfur.dioxide)) + geom_histogram(aes(y=..density..),binwidth=2, color='black', fill='grey') + geom_density(aes(fill=color), alpha=.5), ggplot(all, aes(total.sulfur.dioxide)) + geom_histogram(aes(y=..density..),binwidth = 5,color='black', fill='grey') + geom_density(aes(fill=color), alpha=.5), nrow=1) 
+grid.arrange(ggplot(all, aes(free.sulfur.dioxide)) +
+               geom_histogram(aes(y=..density..),binwidth=2,
+                              color='black', fill='grey') +
+               geom_density(aes(fill=color), alpha=.5),
+             
+             ggplot(all, aes(total.sulfur.dioxide)) +
+               geom_histogram(aes(y=..density..),binwidth = 5,
+                              color='black', fill='grey') +
+               geom_density(aes(fill=color), alpha=.5),
+             nrow=1) 
 ```
 
 Good thing we didn't drop either variable!
@@ -132,7 +169,9 @@ Values are higher for white wines in both sulfur dioxide measurements, but there
 #### Density
 
 ```{r univariate counts density}
-ggplot(all, aes(density)) + geom_histogram(aes(y=..density..), bins=50, color='black', fill='grey') + geom_density(aes(fill=color), alpha=.5)
+ggplot(all, aes(density)) +
+  geom_histogram(aes(y=..density..), bins=50, color='black', fill='grey') +
+  geom_density(aes(fill=color), alpha=.5)
 ```
 
 Very little variation here (note the condensed x scale), and a relatively smooth distributions for both reds and white. This may still be interesting though. Our correlation graph showed a strong positive correllation between density and residual sugar (which makes sense because sugar is more dense than water), and a strong negative correlation between density and alcohol content (which makes sense because alcohol is less dense than water). The most dense wines are thus probably those that are the sweetest, and those which have the lowest alcohol content. 
@@ -143,7 +182,9 @@ We see more bimodality here. Perhaps in our next steps we will be able to determ
 #### pH
 
 ```{r univariate counts pH}
-ggplot(all, aes(pH)) + geom_histogram(aes(y=..density..), bins=40, color='black', fill='grey') + geom_density(aes(fill=color), alpha=.5) + scale_x_continuous(trans='reverse')
+ggplot(all, aes(pH)) +
+  geom_histogram(aes(y=..density..), bins=40, color='black', fill='grey') +
+  geom_density(aes(fill=color), alpha=.5) + scale_x_continuous(trans='reverse')
 ```
 
 Now this strikes me as unusual. pH is a measurement of acidity, and since both of our "acidity" plots were right-skewed, I would have expected this to be right-skewed as well (higher acidity = lower pH, so the x-scale has been reversed), but this is not the case. If anything, this histogram is slightly left-skewed. This suggests that pH can not be conceptualized as a simple derivation from the "fixed acidity" and "volatile acidity" values. This may be interesting, but further exploration of this will be beyond the scope of this exercise.  
@@ -152,7 +193,9 @@ Now this strikes me as unusual. pH is a measurement of acidity, and since both o
 #### Sulphates
 
 ```{r univariate counts sulphates}
-ggplot(all, aes(sulphates)) + geom_histogram(aes(y=..density..),binwidth=.02, color='black', fill='grey') + geom_density(aes(fill=color), alpha=.5)
+ggplot(all, aes(sulphates)) +
+  geom_histogram(aes(y=..density..),binwidth=.02, color='black', fill='grey') +
+  geom_density(aes(fill=color), alpha=.5)
 ```
 
 Another right-skewed distribution. Levels generally higher in the reds. Not a whole lot to see here.
@@ -161,7 +204,9 @@ Another right-skewed distribution. Levels generally higher in the reds. Not a wh
 #### Alcohol
 
 ```{r univariate counts alcohol}
-ggplot(all, aes(alcohol)) + geom_histogram(aes(y=..density..),binwidth = .1, color='black', fill='grey') + geom_density(aes(fill=color), alpha=.5) 
+ggplot(all, aes(alcohol)) +
+  geom_histogram(aes(y=..density..),binwidth = .1, color='black', fill='grey') +
+  geom_density(aes(fill=color), alpha=.5) 
 ```
 
 Mean alcohol content is around 10.5, but the most common value was around 9.5.  There is quite a bit of variation, with the most alcoholic bottle being almost twice as strong as the least alcoholic bottle. This is the only variable aside from total sulfur dioxide (which was bimodal) to have a distribution with a negative kurtosis value.
@@ -176,7 +221,9 @@ One last note: There are some odd 'peaks', which seem to be at .0 and .5 values.
 #### Quality
 
 ```{r univariate counts quality}
-ggplot(all, aes(quality)) + geom_histogram(aes(group=color, fill=color), position = position_dodge(width=.5), stat='density') 
+ggplot(all, aes(quality)) +
+  geom_histogram(aes(group=color, fill=color),
+                 position = position_dodge(width=.5), stat='density') 
 ```
 
 This plot of our final value, quality, shows us that the judges seemed to like this batch of wines generally speaking! They rated nothing below a 3/10, and the most common rating was 6/10 for whites and 5/10 for reds. The white wines were generally perceived to be of a higher quality. No telling why though! It's entirely possible that the judges contributing to this project simply had a personal preference for white wine! 
@@ -211,13 +258,32 @@ I want to first explore some "clusters" of seemingly associated features before 
 #### Acidity
 
 ```{r acidity}
-grid.arrange(qplot(data=all, x=pH, y=fixed.acidity) + scale_x_continuous(trans='reverse') + geom_smooth(method=lm), qplot(data=all, x=pH, y=volatile.acidity) + scale_x_continuous(trans='reverse') + geom_smooth(method=lm), qplot(data=all, x=pH, y=citric.acid) + scale_x_continuous(trans='reverse') + geom_smooth(method=lm), nrow=1)
+grid.arrange(qplot(data=all, x=pH, y=fixed.acidity) + 
+               scale_x_continuous(trans='reverse') + geom_smooth(method=lm),
+             
+             qplot(data=all, x=pH, y=volatile.acidity) +
+               scale_x_continuous(trans='reverse') + geom_smooth(method=lm),
+             
+             qplot(data=all, x=pH, y=citric.acid) +
+               scale_x_continuous(trans='reverse') + geom_smooth(method=lm),
+             nrow=1)
 ```
 
 Clearly, the terms "fixed acidity" and "volatile acidity" must have very different meanings. As shown in the top two plots, "fixed acidity" (and citric acid levels) seem to be associated with the classic concept of "acidity" (as measured by pH), whereas "volatile acidity" is negatively correlated with the classic concept of acidity. Lower pH (more acidic) wines actually have _lower_ measurements of volatile acidity. We would have to do more research outside of our dataset to learn more about what volatile acidity is actually referring to when it comes to wines.
 
 ```{r acidity by color}
-grid.arrange(qplot(data=all, x=pH, y=fixed.acidity, color=color) + scale_x_continuous(trans='reverse') + geom_smooth(method=lm, size=2, fill='black'), qplot(data=all, x=pH, y=volatile.acidity, color=color) + scale_x_continuous(trans='reverse') + geom_smooth(method=lm, size=2, fill='black'), qplot(data=all, x=pH, y=citric.acid, color=color) + scale_x_continuous(trans='reverse') + geom_smooth(method=lm, size=2, fill='black'), nrow=1)
+grid.arrange(qplot(data=all, x=pH, y=fixed.acidity, color=color) +
+               scale_x_continuous(trans='reverse') +
+               geom_smooth(method=lm, size=2, fill='black'),
+             
+             qplot(data=all, x=pH, y=volatile.acidity, color=color) +
+               scale_x_continuous(trans='reverse') +
+               geom_smooth(method=lm, size=2, fill='black'),
+             
+             qplot(data=all, x=pH, y=citric.acid, color=color) +
+               scale_x_continuous(trans='reverse') +
+               geom_smooth(method=lm, size=2, fill='black'),
+             nrow=1)
 ```
 
 This demonstrates that the links between fixed.acidity and total acidity (as measured by pH), and citric acid and total acidity are stronger in the red wines than in the whites. We can also see that there isn't much of a link at all between volatile acidity and pH in the white wines group.
@@ -226,7 +292,15 @@ This demonstrates that the links between fixed.acidity and total acidity (as mea
 #### Density
 
 ```{r density}
-grid.arrange(qplot(data=all, x=residual.sugar, y=density) + geom_smooth(method=lm, size=2), qplot(data=all, x=chlorides, y=density) + geom_smooth(method=lm, size=2), qplot(data=all, x=sulphates, y=density) + geom_smooth(method=lm, size=2), qplot(data=all, x=alcohol, y=density) + geom_smooth(method=lm, size=2), nrow=2)
+grid.arrange(qplot(data=all, x=residual.sugar, y=density) +
+               geom_smooth(method=lm, size=2),
+             qplot(data=all, x=chlorides, y=density) +
+               geom_smooth(method=lm, size=2),
+             qplot(data=all, x=sulphates, y=density) +
+               geom_smooth(method=lm, size=2),
+             qplot(data=all, x=alcohol, y=density) +
+               geom_smooth(method=lm, size=2),
+             nrow=2)
 ```
 
 These observations are fairly straightforward, but interesting nonetheless. Wine is mostly water, and these features all have to do with the ingredients in wine that are *not* water. An increased concentration of solutes (sugar, chlorides, and sulphates) has a predictably positive effect on liquid density, whereas increased alcohol content has a predictably negative impact on the same. (alcohol is less dense than water) The correlation between alcohol and density is much stronger than the correlation between density and any of the solutes. It is actually the second strongest correlation in the dataset, second only to the correlation between the two measurements of sulfur dioxide.
@@ -234,7 +308,14 @@ These observations are fairly straightforward, but interesting nonetheless. Wine
 The residual sugar (and to a lesser extent the chlorides) chart is oddly shaped. There almost seems to be two distinct groupings of points, one with a gentle slope spanning the whole x range, and one with a very steep slope in the low x range (0:2.5). I recall seeing significant variation in both residual sugar and chloride levels between the reds and the whites. Let's see if that explains the odd shapes of these distributions.  
 
 ```{r density by color}
-grid.arrange(qplot(data=all, x=residual.sugar, y=density, color=color) + geom_smooth(method='loess', fill='black'), qplot(data=all, x=chlorides, y=density, color=color) + geom_smooth(method=loess, fill='black'), qplot(data=all, x=sulphates, y=density, color=color) + geom_smooth(method=lm, size=2, fill='black'), qplot(data=all, x=alcohol, y=density, color=color) + geom_smooth(method=lm, size=2, fill='black'), nrow=2)
+grid.arrange(qplot(data=all, x=residual.sugar, y=density, color=color) +
+               geom_smooth(method='loess', fill='black'),
+             qplot(data=all, x=chlorides, y=density, color=color) +
+               geom_smooth(method=loess, fill='black'),
+             qplot(data=all, x=sulphates, y=density, color=color) +
+               geom_smooth(method=lm, size=2, fill='black'),
+             qplot(data=all, x=alcohol, y=density, color=color) +
+               geom_smooth(method=lm, size=2, fill='black'), nrow=2)
 ```
 
 My hunch was correct. The "2-groups" appearance of the residual sugar plot is indeed attributable to differences between the red and white wines. We see much more variation of residual sugar in the whites, whereas the reds are almost entirely low-sugar bottles. We see similar separation in the chlorides plot, but less pronounced.
@@ -245,13 +326,15 @@ The bottom plots don't expose much new information, but they do reinforce our ea
 #### Sulfur Dioxide
 
 ```{r sulfur dioxide}
-qplot(data=all, x=free.sulfur.dioxide, y=total.sulfur.dioxide) + geom_smooth(method=lm, size=2)
+qplot(data=all, x=free.sulfur.dioxide, y=total.sulfur.dioxide) +
+  geom_smooth(method=lm, size=2)
 ```
 
 Our dataset's strongest correlation was between free and total sulfur dioxide levels (.72). This seems logical, as "free" sulfur dioxide is a subset of "total" sulfur dioxide. I mentioned earlier that the two may have divergent effects on the subjective quality of wine, but our correllation matrix shows that any such differences are negligible.   
 
 ```{r sulfur dioxide by color}
-qplot(data=all, x=free.sulfur.dioxide, y=total.sulfur.dioxide, color=color) + geom_smooth(method=lm, size=2)
+qplot(data=all, x=free.sulfur.dioxide, y=total.sulfur.dioxide, color=color) +
+  geom_smooth(method=lm, size=2)
 ```
 
 Not too much to see here other than the high concentration of the red wines in the lower left portion of the plot. We already concluded earlier that the reds generally have low levels of both free and total sulfur dioxide relative to the whites. 
@@ -269,7 +352,15 @@ We must note, however, that the correlations we just identified are from the who
 #### Measures of Acidity
 
 ```{r acidity~quality}
-grid.arrange(qplot(data=all, x=quality, y=fixed.acidity, fill=color, geom='boxplot'), qplot(data=all, x=quality, y=volatile.acidity, fill=color, geom='boxplot'), qplot(data=all, x=quality, y=citric.acid, fill=color, geom='boxplot'), qplot(data=all, x=quality, y=pH, fill=color, geom='boxplot') + scale_y_continuous(trans='reverse'),nrow=2)
+grid.arrange(qplot(data=all, x=quality, y=fixed.acidity,
+                   fill=color, geom='boxplot'),
+             qplot(data=all, x=quality, y=volatile.acidity,
+                   fill=color, geom='boxplot'),
+             qplot(data=all, x=quality, y=citric.acid,
+                   fill=color, geom='boxplot'),
+             qplot(data=all, x=quality, y=pH, fill=color, geom='boxplot') +
+               scale_y_continuous(trans='reverse'),
+             nrow=2)
 ```
 
 ##### Fixed Acidity
@@ -302,7 +393,10 @@ HUGE IQRs among the whites, with means showing no clear trend. All over the plac
 The following plot will show us only the white wines, further broken down into groupings by sweetness.
 
 ```{r residual.sugar~quality whites}
-qplot(data=subset(all, color = 'White'), x=quality, y=residual.sugar, fill = sweetness, geom = 'boxplot') + scale_fill_manual(values =c('#EEEEEE', "#BBBBBB"), guide = guide_legend(reverse = TRUE))
+qplot(data=subset(all, color = 'White'), x=quality, y=residual.sugar,
+      fill = sweetness, geom = 'boxplot') +
+  scale_fill_manual(values =c('#EEEEEE', "#BBBBBB"),
+                    guide = guide_legend(reverse = TRUE))
 ```
 
 Now, we've exposed two discrete IQR bands, the high ones for the semi-dry wines and the low ones for the dry wines. Unfortunately though, this has not really provided any interesting insights. 
@@ -311,7 +405,11 @@ Now, we've exposed two discrete IQR bands, the high ones for the semi-dry wines 
 #### Other Solutes
 
 ```{r solutes~quality}
-grid.arrange(qplot(data=all, x=quality, y=chlorides, fill=color, geom='boxplot'), qplot(data=all, x=quality, y=sulphates, fill=color, geom='boxplot'), nrow=1)
+grid.arrange(qplot(data=all, x=quality, y=chlorides,
+                   fill=color, geom='boxplot'),
+             qplot(data=all, x=quality, y=sulphates,
+                   fill=color, geom='boxplot'),
+             nrow=1)
 ```
 
 Higher chloride count did not render wines catagorically unpleasant (see high values at quality ratings of 6, 7, and 8), but the highest quality wines generally had some of the lowest chloride levels.
@@ -322,7 +420,11 @@ Sulphate levels are positively associated with quality in reds, but neutral amon
 #### Sulfur Dioxide
 
 ```{r sulfur.dioxide~quality}
-grid.arrange(qplot(data=all, x=quality, y=free.sulfur.dioxide, fill=color, geom='boxplot'), qplot(data=all, x=quality, y=total.sulfur.dioxide, fill=color, geom='boxplot'), nrow=1)
+grid.arrange(qplot(data=all, x=quality, y=free.sulfur.dioxide,
+                   fill=color, geom='boxplot'),
+             qplot(data=all, x=quality, y=total.sulfur.dioxide,
+                   fill=color, geom='boxplot'),
+             nrow=1)
 ```
 
 Sulfur Dioxide levels much higher in the white wines (but less so for the lowest quality wines). 
@@ -345,20 +447,24 @@ According to that article:
 Let's take a look and see if this shows through in our data. 
 
 ```{r sugar~alcohol}
-qplot(data=all, x=residual.sugar, y=alcohol) + stat_smooth(method='lm', se=FALSE, size=2, fullrange=TRUE)
+qplot(data=all, x=residual.sugar, y=alcohol) +
+  stat_smooth(method='lm', se=FALSE, size=2, fullrange=TRUE)
 ```
 
 Well, there seems to be a negative correlation like I predicted, but the data is pretty messy. Let's see if we can do a better job of sorting through this. One thing I know we can probably do right off the bat is to subset out only the white wines (since the reds all have low sugar content). While doing that, let's also see how quality factors into this relationship.  
 
 ```{r sugar~alcohol by quality}
 all <- group_by(all, quality)
-qplot(data=subset(all, color=='White'), x=residual.sugar, y=alcohol, color=quality) + stat_smooth(method='lm', se=FALSE, size=2, fullrange=TRUE)
+qplot(data=subset(all, color=='White'),
+      x=residual.sugar, y=alcohol, color=quality) +
+  stat_smooth(method='lm', se=FALSE, size=2, fullrange=TRUE)
 ```
 
 There does in fact seem to be some variation between each quality group. Lets get a better look by separating quality out into facets. 
 
 ```{r sugar~alcohol by quality faceted}
-qplot(data=subset(all, color="White"), x=residual.sugar, y=alcohol) + stat_smooth(method='lm', size=2) + facet_wrap(~quality) 
+qplot(data=subset(all, color="White"), x=residual.sugar, y=alcohol) +
+  stat_smooth(method='lm', size=2) + facet_wrap(~quality) 
 ```
 
 Well that's interesting!  The relationship that I predicted I'd see between sugar and alcohol content seems to be more prevalent in higher quality wines. Now I can't jump to any conclusions from this, but it makes me wonder if some of the lower quality wines might contain added sugar and/or alcohol? I'll jot this down in my notebook of "questions for a wine expert" 
@@ -366,9 +472,15 @@ Well that's interesting!  The relationship that I predicted I'd see between suga
 The same trend viewed in non-graphical representation of each quality grouping's linear coefficient:
 
 ```{r corrcoef}
-fitted_models = all %>% group_by(quality) %>% do(model = lm(alcohol ~ residual.sugar, data = .))
+# get slope and y intercept of lines of best fit at each quality level
+fitted_models = all %>%
+  group_by(quality) %>%
+  do(model = lm(alcohol ~ residual.sugar, data = .))
+
+# print these values to the console
 for (i in 1:7){
-  cat(c("Quality", levels(fitted_models$quality)[i], ":" ,  round(fitted_models$model[[i]][['coefficients']][2], 4), "\n"))
+  cat(c("Quality", levels(fitted_models$quality)[i], ":" ,
+        round(fitted_models$model[[i]][['coefficients']][2], 4), "\n"))
 }
 ```
 
