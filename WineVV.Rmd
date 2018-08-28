@@ -9,7 +9,7 @@ output:
 
 ```{r setup, include=FALSE}
 
-# set fig output directory to save plots upon knit
+# set fig output directory to save plots upon knit and turn off code echo
 knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',
                       echo=FALSE, warning=FALSE, message=FALSE)
 
