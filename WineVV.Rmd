@@ -37,13 +37,14 @@ all$X <- NULL
 red$color <- NULL
 white$color <- NULL
 all$quality <- factor(all$quality, ordered=TRUE)
+all$sweetness <- cut(all$residual.sugar, breaks = c(0,10,500), labels=c('dry', 'semi-dry'))
 ```
 
 We have access to data on 6497 bottles of "Vinho Verde" in total, 1599 of which are red, and 4898 of which are white. The data include measurements on 11 chemical compounds or properties, plus a subjective rating of "quality" as determined by a panel of wine professionals. 
 
 I added a "color" variable to each dataset identifying each entry as "red" or "white", before combining the two sets into a master dataframe. This will allow us to group by color during certain analyses, which in turn will help expose major differences between the characteristics of the two types of wine. (NOTE: for post EDA statistical testing, we would want to code color as dummy integer variables rather than as a categorical string variable.) The "Quality" variable has been recoded as an ordered factor.
 
-I also "cut" the wines into dry and semi-dry "sweetness" groupings based on their residual sugar content to help us look for significant differences between wines of differing sweetness. I used [this article](https://winefolly.com/review/sugar-in-wine-chart/) from winefolly.com to inform my choice of cutoff values. (NOTE: in retrospect, I end up not making much use of this variable, so cut it from my code to speed up data processing)
+I also "cut" the wines into dry and semi-dry "sweetness" groupings based on their residual sugar content to help us look for significant differences between wines of differing sweetness. I used [this article](https://winefolly.com/review/sugar-in-wine-chart/) from winefolly.com to inform my choice of cutoff values. (NOTE: in retrospect, I end up not making much use of this variable, but it did come in handy at one key point!)
 
 *NOTE: For all variables except for "quality", individual outlier values (below .01 quantile or above .99 quantile) have been replaced with NA so they do not interfere with observations and calculations*
 
@@ -63,7 +64,7 @@ corrgram(all)
 
 There are some clear correlations here and there, but nothing so blatant and consistent as to make me feel like features are overly redundant (NOTE: you can think of this step as a very crude preliminary factor analysis). I considered dropping one of the sulfur dioxide measurements because they are highly correlated and almost identical in their correlation profile with the other features, but I am electing to keep them both since they differ in their relationship to the "quality" measurement, which is perhaps the most important feature in the dataset.
 
-We will revisit some of these correlations in more detail later on, but for now we will proceed with a brief inspection of each feature. Please note that plot ranges have been restricted to make them more visually informative, and that this restriction may in some cases have excluded some outliers. These outliers will be brought back in during bivariate and multivariate analyses, where they may prove more interesting.
+We will revisit some of these correlations in more detail later on, but for now we will proceed with a brief inspection of each feature. Please note that plot ranges have been restricted to make them more visually informative, and that this restriction may in some cases have excluded some outliers.
 
 
 \newpage
@@ -304,7 +305,7 @@ The following plot will show us only the white wines, further broken down into g
 qplot(data=subset(all, color = 'White'), x=quality, y=residual.sugar, fill = sweetness, geom = 'boxplot') + scale_fill_manual(values =c('#EEEEEE', "#BBBBBB"), guide = guide_legend(reverse = TRUE))
 ```
 
-Now, we've exposed two discrete sets of IQRs, the high ones for the semi-dry wines and the low ones for the dry wines. Unfortunately though, this has not provided any interesting insights. 
+Now, we've exposed two discrete IQR bands, the high ones for the semi-dry wines and the low ones for the dry wines. Unfortunately though, this has not really provided any interesting insights. 
 
 \newpage
 #### Other Solutes
@@ -405,7 +406,7 @@ fitted_models = all %>% group_by(quality_group) %>% do(model = lm(alcohol ~ resi
 low_m = fitted_models$model[[1]]['coefficients']
 high_m = fitted_models$model[[3]]['coefficients']
 ```
-```{r}
+```{r Final2 (Sugar~alcohol)}
 qplot(data = filter(all, color=='White', quality_group != 'average'), x= residual.sugar, alcohol, color=quality_group) + geom_smooth(method='lm', size=2) + scale_color_manual(all$quality_group, values= c('blue', 'orange')) + theme_few() + theme(legend.position=c(.865, .8), legend.background = element_rect(fill="lightblue", size=0.8, linetype="solid"), legend.key.size = unit(5, 'line'),  text = element_text(size=20, face="bold"), axis.text = element_text(size = 16), plot.title = element_text(size = 25, hjust=.5), plot.subtitle = element_text(hjust=.5)) + labs(title = "Fermentation profile of white Vinho Verdes", subtitle="Comparing lower and higher quality whites.",x= "Residual Sugar (g / L)", y = "Alcohol (% by vol)") + guides(color = guide_legend(title="Wine Quality", reverse = TRUE)) + annotate('text', x=12, y=12.8, label=paste(round(high_m[[1]][[2]], 2), 'x + ', round(high_m[[1]][[1]], 2)), color = 'darkorange3', face='bold', size=8) + annotate('text', x=12, y=12, label=paste(round(low_m[[1]][[2]], 2), 'x + ', round(low_m[[1]][[1]], 2)), color = 'darkblue', face='bold', size=8) + annotate('rect', xmin=10, xmax=14, ymin=12.6, ymax=13, alpha=.2) + annotate('rect', xmin=10, xmax=14, ymin=11.8, ymax=12.2, alpha=.2)
 ```
 
@@ -415,7 +416,7 @@ Vinho Verde is, in general, a dry class of wines, so we do not see as much varia
 
 \newpage
 ### Why do the best wines have the most alcohol?
-```{r alcohol~quality}
+```{r Final3 (alcohol~quality)}
 ggplot(all) + geom_boxplot(aes(x=quality, y=alcohol, fill=color, geom='boxplot'), alpha=.8) + theme_few() + theme(legend.background = element_rect(fill="lightblue", size=0.5, linetype="solid"), legend.position = c(.9, .25), legend.key.size = unit(5, 'line'), legend.title = element_blank(),  text = element_text(size=20, face="bold"), axis.text = element_text(size = 16), plot.title = element_text(size = 25, hjust=.5)) + labs(title = "Does more alcohol mean a better Vinho Verde?", x= "Wine Quality", y = "Alcohol (% by volume)") + scale_fill_manual(all$color, values= c('darkred', 'palegreen'))
 ```
 
@@ -430,7 +431,7 @@ Combining the red and white wine datasets made it very easy to look for major di
 
 Aside from my initial uncertainty as to whether combining the sets was a good idea, the EDA process here was generally straightforward and I did not hit any significant snags.
 
-If I were to revisit this task, I would consider diving deeper into the variable "groupings" that we discussed earlier, perhaps creating some "ratio" variables (i.e. sugar/alcohol, freeSO2/totalSO2, volatile/fixed acidity). Introducing these ratios into other multivariable analyses might provide a deeper layer of insight into the interplay between those individual features.  
+If I were to revisit this task, I would consider diving deeper into the variable "groupings" that we discussed earlier, perhaps creating some "ratio" variables (i.e. sugar/alcohol, freeSO2/totalSO2, volatile/fixed acidity). Introducing these ratios into other multivariable analyses might provide a deeper layer of insight into the interplay between those individual features. I would also consider bringing back in the outliers that were stripped from the set to see if they follow the general trends we saw or if they are unique in other regards.   
 
 If I were to continue on with a heavier stats analysis, I might consider: 
 1) using a dummy variables for color and quality group to facilitate stats modeling
