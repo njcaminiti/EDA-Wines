@@ -439,4 +439,4 @@ If I were to continue on with a heavier stats analysis, I might consider:
 
 If I were to continue on with a broader look at wines in general, I'd want to look at stats on wines outside of the Vinho Verde family! 
 
-winemaking seems complicated!  While it is true that winemakers will add sugar to wine early in the fermentation process, this is generally done to increase the final alcohol content, not to increase the wine's sweetness. See: https://en.wikipedia.org/wiki/Chaptalization   
+winemaking seems complicated!  While it is true that winemakers will add sugar to wine early in the fermentation process, this is generally done to increase the final alcohol content, not to increase the wine's sweetness. See: https://en.wikipedia.org/wiki/Chaptalization  
