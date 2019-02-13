@@ -1,6 +1,6 @@
-# UDAN_EDA
+## Exploratory data analysis in an RMarkdown Notebook 
 
-### Exploratory data analysis in an RMarkdown Notebook (can knit to HTML, PDF, or Word doc)
+### Repo contains raw R and RMarkdown files. To view final, formatted report, download WineVV.RMD and export ('knit') to HTML, PDF, or Word doc
 
 
 ##### This exploratory data analysis uses the following dataset:
